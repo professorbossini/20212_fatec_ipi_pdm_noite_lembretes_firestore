@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
+  Alert, 
   Button,
   FlatList,
-  StyleSheet, 
-  TextInput, 
+  StyleSheet,
+  Text, 
+  TextInput,
+  TouchableNativeFeedback, 
   View } from 'react-native';
 
 import ENV from './env'
@@ -19,13 +22,20 @@ export default function App() {
   const [lembrete, setLembrete] = useState('')
   const [lembretes, setLembretes] = useState([])
 
+
+
   useEffect(() => {
     db.collection('lembretes').onSnapshot((snapshot) => {
       let aux = []
       snapshot.forEach(doc => {
-        aux.push(doc.data())
+        aux.push({
+          data: doc.data().data,
+          texto: doc.data().texto,
+          chave: doc.id
+        })
       })
-      setLembretes(lembretesAnterior => aux)
+      setLembretes(aux)
+      console.log("Lembretes")
       console.log(lembretes)
     })
   }, [])
@@ -35,12 +45,27 @@ export default function App() {
   }
 
   const adicionarLembrete = () => {
-    db.collection('lembretes').
     db.collection('lembretes').add({
       texto: lembrete,
       data: new Date()
     })
     setLembrete('')
+  }
+
+  const removerLembrete = (chave) => {
+    Alert.alert(
+      "Apagar?",
+      "Quer mesmo apagar o seu lembrete?",
+      [
+        {
+          text: 'Cancelar'
+        },
+        {
+          text: 'Confirmar',
+          onPress: () => db.collection('lembretes').doc(chave).delete()
+        }
+      ]
+    )
   }
 
   return (
@@ -57,11 +82,33 @@ export default function App() {
             onPress={adicionarLembrete}
           />
       </View>
+      <FlatList 
+        style={{marginTop: 4}}
+        data={lembretes}
+        renderItem={lembrete => (
+          <TouchableNativeFeedback 
+            onLongPress={() => {removerLembrete(lembrete.item.chave)}}>
+            <View
+              style={styles.itemLista}>
+              <Text>{lembrete.item.texto}</Text>
+              <Text>{lembrete.item.data.toDate().toLocaleString()}</Text>
+            </View>
+          </TouchableNativeFeedback>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  itemLista: {
+    marginBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
